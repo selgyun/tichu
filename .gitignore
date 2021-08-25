@@ -42,6 +42,9 @@ ExportedObj/
 *.mdb
 *.opendb
 *.VC.db
+*.TTF
+*.TTF.meta
+*.keystore
 
 # Unity3D generated meta files
 *.pidb.meta
@@ -58,3 +61,10 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+PlugIns/
+Library/
+Editor Default Resources/
+ExternalDependencyManager/
+Firebase/
+Parse/
+Photon/

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1045781211945",
+    "project_id": "tichu-c2b56",
+    "storage_bucket": "tichu-c2b56.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1045781211945:android:b8b0b89b5f0279200de538",
+        "android_client_info": {
+          "package_name": "com.selgyun.tichu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1045781211945-aiqhkkj4sj80rhdijkfvj66lre5qbvl4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.selgyun.tichu",
+            "certificate_hash": "bcef5e054702a9b6b114c0f9cfc11b9083ec329b"
+          }
+        },
+        {
+          "client_id": "1045781211945-m6rs0eh17hjk67lulebnqc0023hjpkc2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDP0GAfBtARLsUj5NjZi3yKEu0QLUOiTMw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1045781211945-m6rs0eh17hjk67lulebnqc0023hjpkc2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
