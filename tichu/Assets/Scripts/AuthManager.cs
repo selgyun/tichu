@@ -19,13 +19,14 @@ public class AuthManager : MonoBehaviour
     public InputField passwordField;
     public Button signInButton;
     public Button registerButton;
+    public Text warningLoginText;
 
     // firebase 
     public static FirebaseApp firebaseApp;
     public static FirebaseAuth firebaseAuth;
 
     public static FirebaseUser User;
-    void Start()
+    private void Awake()
     {
         signInButton.interactable = false;
 
@@ -50,38 +51,58 @@ public class AuthManager : MonoBehaviour
         });
     }
 
-    public void SignIn()
+    public void SignInButton()
     {
-        if (!IsFirebaseReady || IsSignInOnProgress || User != null)
+        StartCoroutine(SignIn(emailField.text, passwordField.text));
+    }
+
+    private IEnumerator SignIn(string _email, string _password)
+    {
+        //IsSignInOnProgress = true;
+        //signInButton.interactable = false;
+
+        var LoginTask = firebaseAuth.SignInWithEmailAndPasswordAsync(_email, _password);
+
+        yield return new WaitUntil(predicate: () => LoginTask.IsCompleted);
+
+        if (LoginTask.Exception != null)
         {
-            return;
+            Debug.LogWarning(message: $"Failed to register task with {LoginTask.Exception}");
+            FirebaseException firebaseEx = LoginTask.Exception.GetBaseException() as FirebaseException;
+            AuthError errorCode = (AuthError)firebaseEx.ErrorCode;
+
+            string message = "Login Failed!";
+            switch (errorCode)
+            {
+                case AuthError.MissingEmail:
+                    message = "Missing Email";
+                    break;
+                case AuthError.MissingPassword:
+                    message = "Missing Password";
+                    break;
+                case AuthError.WrongPassword:
+                    message = "Wrong Password";
+                    break;
+                case AuthError.InvalidEmail:
+                    message = "Invalid Email";
+                    break;
+                case AuthError.UserNotFound:
+                    message = "Account does not exist";
+                    break;
+            }
+            warningLoginText.text = message;
         }
-
-        IsSignInOnProgress = true;
-        signInButton.interactable = false;
-        
-        // ContinueWith 로 나중에 바꾸기!
-        firebaseAuth.SignInWithEmailAndPasswordAsync(emailField.text, passwordField.text).ContinueWithOnMainThread(task =>
+        else
         {
-            Debug.Log($"Sign in status : {task.Result}");
+            User = LoginTask.Result;
+            Debug.LogFormat("User signed in successfully: {0} ({1})", User.DisplayName, User.Email);
+            warningLoginText.text = "Login Success";
 
-            IsSignInOnProgress = false;
-            signInButton.interactable = true;
+            yield return new WaitForSeconds(2.0f);
 
-            if (task.IsFaulted)
-            {
-                Debug.LogError(task.Exception);
-            }
-            else if(task.IsCanceled)
-            {
-                Debug.LogError("Sign in canceled");
-            }
-            else
-            {
-                User = task.Result;
-                Debug.Log(User.Email);
-                SceneManager.LoadScene("Lobby");
-            }
-        });
+            //IsSignInOnProgress = false;
+            //signInButton.interactable = true;
+            SceneManager.LoadScene("Lobby");
+        }
     }
 }
