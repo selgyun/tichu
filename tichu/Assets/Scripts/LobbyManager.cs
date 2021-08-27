@@ -37,7 +37,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         NextButton.interactable = (currentPage >= maxPage) ? false : true;
 
         multiple = (currentPage - 1) * RoomButton.Length;
-        PageNumber.text = $"{currentPage} / {maxPage}";
+        PageNumber.text = $"{currentPage} / {maxPage+1}";
         for (int i = 0;i < RoomButton.Length; i++)
         {
             RoomButton[i].interactable = (multiple + i < roomList.Count) ? true : false;
