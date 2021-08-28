@@ -2423,13 +2423,13 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1391924720}
   m_TextComponent: {fileID: 499386923}
   m_Placeholder: {fileID: 732056550}
-  m_ContentType: 0
+  m_ContentType: 6
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 0
+  m_KeyboardType: 7
   m_LineType: 0
   m_HideMobileInput: 0
-  m_CharacterValidation: 0
+  m_CharacterValidation: 5
   m_CharacterLimit: 0
   m_OnEndEdit:
     m_PersistentCalls:
@@ -2867,13 +2867,13 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1621833714}
   m_TextComponent: {fileID: 19697082}
   m_Placeholder: {fileID: 419163589}
-  m_ContentType: 0
+  m_ContentType: 6
   m_InputType: 0
   m_AsteriskChar: 42
-  m_KeyboardType: 0
+  m_KeyboardType: 7
   m_LineType: 0
   m_HideMobileInput: 0
-  m_CharacterValidation: 0
+  m_CharacterValidation: 5
   m_CharacterLimit: 0
   m_OnEndEdit:
     m_PersistentCalls:

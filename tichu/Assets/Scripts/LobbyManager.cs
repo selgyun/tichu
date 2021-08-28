@@ -2,12 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using Photon.Pun;
 using Photon.Realtime;
 
 public class LobbyManager : MonoBehaviourPunCallbacks
 {
     private readonly string gameVersion = "1";
+    [Header("Lobby")]
     public Text connectionInfoText;
     public Text UserNumber;
     public Text PageNumber;
@@ -16,6 +18,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     public Button[] RoomButton;
     public Button PreviousButton;
     public Button NextButton;
+
 
 
     List<RoomInfo> roomList = new List<RoomInfo>();
@@ -64,14 +67,21 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     private void Update()
     {
         UserNumber.text = PhotonNetwork.CountOfPlayers + " players connecting to the server";
-        StatusText.text = PhotonNetwork.NetworkClientState.ToString();
+        connectionInfoText.text = PhotonNetwork.NetworkClientState.ToString();
+
+        if (Input.GetKey(KeyCode.Escape))
+        {
+            PhotonNetwork.Disconnect();
+            SceneManager.LoadScene("SignIn");
+        }
     }
 
-    void Start()
+    void Awake()
     {
         PhotonNetwork.GameVersion = gameVersion;
         PhotonNetwork.ConnectUsingSettings();
 
+        StatusText.text = "Room Status";
         connectionInfoText.text = "Connection To Master Server...";
     }
 
@@ -99,14 +109,12 @@ public class LobbyManager : MonoBehaviourPunCallbacks
 
     public void JoinRoom() => PhotonNetwork.JoinRoom(RoomNameInput.text);
 
-    public void LeaveRoom() => PhotonNetwork.LeaveRoom();
-    // enter room scene change
     public override void OnJoinedRoom()
     {
-
+        PhotonNetwork.LoadLevel("Room");
     }
 
-    public override void OnCreateRoomFailed(short returnCode, string message) { StatusText.text = "Room Name Alrealy exist!";  }
+    public override void OnCreateRoomFailed(short returnCode, string message) { StatusText.text = "Room Name Alrealy exist!"; PhotonNetwork.JoinLobby(); }
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
@@ -116,7 +124,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
 
     public override void OnJoinRandomFailed(short returnCode, string message)
     {
-        StatusText.text = $"Room does not exist!";
+        StatusText.text = $"There is no Room!";
         PhotonNetwork.JoinLobby();
     }
 }

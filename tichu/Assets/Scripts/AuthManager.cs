@@ -31,6 +31,12 @@ public class AuthManager : MonoBehaviour
     public static FirebaseAuth firebaseAuth;
 
     public static FirebaseUser User;
+
+    private void Update()
+    {
+        if (Input.GetKey(KeyCode.Escape))
+            Application.Quit();
+    }
     private void Awake()
     {
         signInButton.interactable = false;
@@ -108,7 +114,7 @@ public class AuthManager : MonoBehaviour
             Debug.LogFormat("User signed in successfully: {0} ({1})", User.DisplayName, User.Email);
             warningLoginText.text = "Login Success";
 
-            yield return new WaitForSeconds(1.0f);
+            yield return new WaitForSeconds(0.2f);
 
             //IsSignInOnProgress = false;
             signInButton.interactable = true;
