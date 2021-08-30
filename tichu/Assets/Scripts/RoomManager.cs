@@ -14,8 +14,10 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public InputField ChatInput;
 
     public PhotonView PV;
+    public Text ReadyButtonText;
 
     private int pos = 0;
+    private bool isReady = false;
 
     void Awake()
     {
@@ -23,11 +25,6 @@ public class RoomManager : MonoBehaviourPunCallbacks
         for (int i = 0; i < ChatText.Length; i++)
         {
             ChatText[i].text = "";
-        }
-        for (int i = 0; i < userList.Length; i++)
-        {
-            userList[i].transform.GetChild(0).GetComponent<Text>().text = "";
-            userList[i].transform.GetChild(1).GetComponent<Text>().text = "";
         }
         UpdateUserList();
     }
@@ -45,6 +42,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
     public void QuitRoom()
     {
+        isReady = false;
+        PV.RPC("UpdateReady", RpcTarget.All, isReady, pos);
         PhotonNetwork.LeaveRoom();
         SceneManager.LoadScene("Lobby");
     }
@@ -78,10 +77,87 @@ public class RoomManager : MonoBehaviourPunCallbacks
     [PunRPC]
     void UpdateUserList()
     {
+        for (int i = 0; i < userList.Length; i++)
+        {
+            userList[i].transform.GetChild(0).GetComponent<Text>().text = "";
+            userList[i].transform.GetChild(1).GetComponent<Text>().text = "";
+        }
+
         for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
         {
             userList[i].transform.GetChild(0).GetComponent<Text>().text = PhotonNetwork.PlayerList[i].NickName;
-            userList[i].transform.GetChild(1).GetComponent<Text>().text = "";
+        }
+
+        PV.RPC("FindPos", RpcTarget.All);
+        PV.RPC("UpdateReady", RpcTarget.All, isReady, pos);
+    }
+
+    [PunRPC]
+    void UpdateReady(bool ready, int p)
+    {
+        if (ready)
+            userList[p].transform.GetChild(1).GetComponent<Text>().text = "Ready";
+        else
+            userList[p].transform.GetChild(1).GetComponent<Text>().text = "";
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            return;
+        }
+        bool isStart = true;
+        for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
+        {
+            if (userList[i].transform.GetChild(1).GetComponent<Text>().text != "Ready")
+            {
+                isStart = false;
+                break;
+            }
+        }
+        if (isStart && PhotonNetwork.PlayerList.Length == 4)
+            ReadyButtonText.text = "Game Start";
+        else
+            ReadyButtonText.text = "Ready";
+    }
+    
+    [PunRPC]
+    public void FindPos()
+    {
+        for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
+        {
+            if (PhotonNetwork.PlayerList[i].IsLocal)
+            {
+                pos = i;
+                break;
+            }
+        }
+    }
+
+    public void ReadyBtn()
+    {
+        if (ReadyButtonText.text == "Game Start")
+        {
+            PV.RPC("GameStart", RpcTarget.All);
+            return;
+        }
+        FindPos();
+        isReady = !isReady;
+        PV.RPC("UpdateReady", RpcTarget.All, isReady, pos);
+    }
+
+    [PunRPC]
+    void GameStart()
+    {
+        PhotonNetwork.LoadLevel("Main");
+    }
+
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        for(int i = 0;i < PhotonNetwork.PlayerList.Length; i++)
+        {
+            if (userList[i].transform.GetChild(0).GetComponent<Text>().text == newMasterClient.NickName)
+            {
+                userList[i].transform.GetChild(0).GetComponent<Text>().color = Color.blue;
+                break;
+            }
         }
     }
 }

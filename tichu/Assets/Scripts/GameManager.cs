@@ -9,10 +9,7 @@ public class GameManager : MonoBehaviour
     public Card[] deck;
     void Awake()
     {
-        for(int i = 0;i < 56; i++)
-        {
-            deck[i] = new Card(cardSprite[i], names[i]);
-        }
+
     }
 
     public void Mulligan()

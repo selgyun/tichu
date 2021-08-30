@@ -40,7 +40,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         NextButton.interactable = (currentPage >= maxPage) ? false : true;
 
         multiple = (currentPage - 1) * RoomButton.Length;
-        PageNumber.text = $"{currentPage} / {maxPage+1}";
+        PageNumber.text = $"{currentPage} / {maxPage}";
         for (int i = 0;i < RoomButton.Length; i++)
         {
             RoomButton[i].interactable = (multiple + i < roomList.Count) ? true : false;
@@ -68,12 +68,13 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     {
         UserNumber.text = PhotonNetwork.CountOfPlayers + " players connecting to the server";
         connectionInfoText.text = PhotonNetwork.NetworkClientState.ToString();
-
+        /*
         if (Input.GetKey(KeyCode.Escape))
         {
             PhotonNetwork.Disconnect();
             SceneManager.LoadScene("SignIn");
         }
+        */
     }
 
     void Awake()
