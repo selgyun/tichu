@@ -19,6 +19,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
     private int pos = 0;
     private bool isReady = false;
 
+
     void Awake()
     {
         RoomNameText.text = PhotonNetwork.CurrentRoom.Name;
@@ -80,6 +81,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
         for (int i = 0; i < userList.Length; i++)
         {
             userList[i].transform.GetChild(0).GetComponent<Text>().text = "";
+            userList[i].transform.GetChild(0).GetComponent<Text>().color = Color.black;
             userList[i].transform.GetChild(1).GetComponent<Text>().text = "";
         }
 
@@ -90,6 +92,10 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
         PV.RPC("FindPos", RpcTarget.All);
         PV.RPC("UpdateReady", RpcTarget.All, isReady, pos);
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PV.RPC("ViewHost", RpcTarget.All, pos);
+        }
     }
 
     [PunRPC]
@@ -149,15 +155,77 @@ public class RoomManager : MonoBehaviourPunCallbacks
         PhotonNetwork.LoadLevel("Main");
     }
 
+    [PunRPC]
+    void ViewHost(int hostpos)
+    {
+        userList[hostpos].transform.GetChild(0).GetComponent<Text>().color = Color.blue;
+    }
+
+    public void PlayerBtn(int p)
+    {
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            return;
+        }
+        if ((!userList[p].transform.GetChild(2).gameObject.activeSelf && p != pos) && p < PhotonNetwork.PlayerList.Length)
+            userList[p].transform.GetChild(2).gameObject.SetActive(true);
+        else
+            userList[p].transform.GetChild(2).gameObject.SetActive(false);
+    }
+
+    public void HandOverHost(int p)
+    {
+        PhotonNetwork.SetMasterClient(PhotonNetwork.PlayerList[p]);
+        for (int i = 0;i < PhotonNetwork.PlayerList.Length; i++)
+        {
+            userList[i].transform.GetChild(2).gameObject.SetActive(false);
+        }
+        PV.RPC("UpdateUserList", RpcTarget.All);
+        PV.RPC("HC", RpcTarget.All, pos);
+    }
+    [PunRPC]
+    public void HC(int pre) 
+    {
+        StartCoroutine("HostChange", pre);
+    }
+    public IEnumerator HostChange(int pre)
+    {
+        yield return new WaitForSeconds(0.2f);
+        userList[pre].transform.GetChild(2).GetComponent<Text>().color = Color.black;
+    }
+    public void KickPlayerBtn(int p)
+    {
+        ExitGames.Client.Photon.Hashtable hashtable = new ExitGames.Client.Photon.Hashtable();
+        hashtable.Add("isKicked", true);
+        PhotonNetwork.PlayerList[p].SetCustomProperties(hashtable);
+        userList[p].transform.GetChild(2).gameObject.SetActive(false);
+    }
+
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+    {
+        if (targetPlayer == PhotonNetwork.LocalPlayer)
+        {
+            if (changedProps["isKicked"] != null)
+            {
+                if((bool)changedProps["isKicked"])
+                {
+                    string[] _removeProperties = new string[1];
+                    _removeProperties[0] = "isKicked";
+                    PhotonNetwork.RemovePlayerCustomProperties(_removeProperties);
+                    QuitRoom();
+                }
+            }
+        }
+    }
     public override void OnMasterClientSwitched(Player newMasterClient)
     {
         for(int i = 0;i < PhotonNetwork.PlayerList.Length; i++)
         {
-            if (userList[i].transform.GetChild(0).GetComponent<Text>().text == newMasterClient.NickName)
+            if (i != newMasterClient.ActorNumber)
             {
-                userList[i].transform.GetChild(0).GetComponent<Text>().color = Color.blue;
-                break;
+                userList[i].transform.GetChild(0).GetComponent<Text>().color = Color.black;
             }
         }
+        
     }
 }
