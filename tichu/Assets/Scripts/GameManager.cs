@@ -17,10 +17,15 @@ public class GameManager : MonoBehaviourPunCallbacks
     [Header("UI")]
     public Image[] HandImage;
     public Image[] HandRankingView;
+    public GameObject GiveCardPanel;
     public GameObject InGameBtnBar;
     public GameObject GTBar;
+
+    [Header("Button")]
     public Button[] PlayerBtn;
     public Button SmallTichuBtn;
+
+    [Header("Text")]
     public Text CurScoreText;
     public Text HandRankingText;
     public Text TeamBlueText;
@@ -28,12 +33,12 @@ public class GameManager : MonoBehaviourPunCallbacks
 
 
     private int[] deck = new int[56];
-    private Card[] hand = new Card[14];
+    public static Card[] hand = new Card[14];
     public static int pos = 0;
     public static bool[] gameStart = new bool[4];
     public static bool isGreatTichu;
     public static bool isSmallTichu;
-
+    public static bool[] isChangeCard = new bool[4];
     public PhotonView PV;
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
@@ -53,13 +58,16 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         Init();
         Mulligan();
+
     }
     void Init()
     {
         GTBar.SetActive(true);
         InGameBtnBar.SetActive(false);
+        GiveCardPanel.SetActive(false);
         for (int i = 0; i < 4; i++)
         {
+            isChangeCard[i] = false;
             gameStart[i] = false;
             PlayerBtn[i].transform.GetChild(3).gameObject.SetActive(false);
             PlayerBtn[i].transform.GetChild(4).gameObject.SetActive(false);
@@ -85,6 +93,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         Shuffle(deck, UnityEngine.Random.Range(0, 100));
         PV.RPC("GetHand", RpcTarget.All, deck);
         PV.RPC("ViewHand", RpcTarget.All);
+
     }
 
     public static int[] Shuffle(int[] array, int seed)
@@ -133,7 +142,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    void ViewHand()
+    public void ViewHand()
     {
         if (!gameStart[pos])
         {
@@ -197,8 +206,11 @@ public class GameManager : MonoBehaviourPunCallbacks
     [PunRPC]
     void GameStart()
     {
+        for(int i = 0; i < 4; i++)
+            PlayerBtn[i].transform.GetChild(5).gameObject.SetActive(true);
         GTBar.SetActive(false);
         InGameBtnBar.SetActive(true);
+        GiveCardPanel.SetActive(true);
     }
     [PunRPC]
     void ReceiveGreatTichu(int p)

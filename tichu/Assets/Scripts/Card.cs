@@ -8,6 +8,7 @@ public class Card
     public int id;
     public string name;
     public int score;
+    public bool isSelected { get; set; }
 
     public Card(Sprite sprite, string name,int id, int score)
     {
@@ -15,5 +16,6 @@ public class Card
         this.id = id;
         this.name = name;
         this.score = score;
+        isSelected = false;
     }
 }
