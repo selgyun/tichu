@@ -1664,6 +1664,9 @@ MonoBehaviour:
   - {fileID: 211617965}
   - {fileID: 1668205352}
   SmallTichuBtn: {fileID: 1418192181}
+  PassBtn: {fileID: 1491796567}
+  BombBtn: {fileID: 1165182187}
+  ConformBtn: {fileID: 1981607210}
   CurScoreText: {fileID: 128021477}
   HandRankingText: {fileID: 1176987394}
   TeamBlueText: {fileID: 1548953636}
@@ -2870,7 +2873,7 @@ GameObject:
   - component: {fileID: 833766647}
   m_Layer: 5
   m_Name: Panel
-  m_TagString: Untagged
+  m_TagString: CardSwapImage
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -8354,6 +8357,7 @@ GameObject:
   - component: {fileID: 1981607212}
   - component: {fileID: 1981607211}
   - component: {fileID: 1981607210}
+  - component: {fileID: 1981607213}
   m_Layer: 5
   m_Name: 'ConformButton '
   m_TagString: Untagged
@@ -8424,7 +8428,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1981607211}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1981607213}
+        m_TargetAssemblyTypeName: ConformButton, Assembly-CSharp
+        m_MethodName: Conform
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1981607211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8463,6 +8479,34 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1981607208}
   m_CullTransparentMesh: 1
+--- !u!114 &1981607213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1981607208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9678b9e10231c564fae5b9828992f169, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onCardSwap:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 499633691}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: CardSwap
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  gmr: {fileID: 499633691}
 --- !u!1 &2062385105
 GameObject:
   m_ObjectHideFlags: 0
@@ -8476,7 +8520,7 @@ GameObject:
   - component: {fileID: 2062385107}
   m_Layer: 5
   m_Name: Hand
-  m_TagString: Untagged
+  m_TagString: Hand
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

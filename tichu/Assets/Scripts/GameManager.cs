@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     [Header("Init Card")]
     public string[] names;
     public Sprite[] cardSprite;
+    int[] scores = new int[56];
     public Sprite empty;
 
     [Header("UI")]
@@ -24,6 +25,9 @@ public class GameManager : MonoBehaviourPunCallbacks
     [Header("Button")]
     public Button[] PlayerBtn;
     public Button SmallTichuBtn;
+    public Button PassBtn;
+    public Button BombBtn;
+    public Button ConformBtn;
 
     [Header("Text")]
     public Text CurScoreText;
@@ -34,6 +38,8 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     private int[] deck = new int[56];
     public static Card[] hand = new Card[14];
+    public static int[] CardSwapPack = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+
     public static int pos = 0;
     public static bool[] gameStart = new bool[4];
     public static bool isGreatTichu;
@@ -49,6 +55,19 @@ public class GameManager : MonoBehaviourPunCallbacks
     void Awake()
     {
         getPos();
+        for(int i = 0;i < 56; i++)
+        {
+            if (i == 53)
+                scores[i] = 25;
+            else if (i == 54)
+                scores[i] = -25;
+            else if (i % 13 == 3)
+                scores[i] = 5;
+            else if (i % 13 == 8 || i % 13 == 11)
+                scores[i] = 10;
+            else
+                scores[i] = 0;
+        }
         for(int i = 0;i <PhotonNetwork.PlayerList.Length;i++)
             PlayerBtn[i].transform.GetChild(0).GetComponent<Text>().text = PhotonNetwork.PlayerList[i].NickName;
         newGame();
@@ -62,6 +81,8 @@ public class GameManager : MonoBehaviourPunCallbacks
     }
     void Init()
     {
+        PassBtn.interactable = false;
+        BombBtn.interactable = false;
         GTBar.SetActive(true);
         InGameBtnBar.SetActive(false);
         GiveCardPanel.SetActive(false);
@@ -128,16 +149,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         for(int i = 0;i < 14; i++)
         {
             int id = pos * 14 + i;
-            if(arr[id] == 53)
-                hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], 25);
-            else if(arr[id] == 52)
-                hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], -25);
-            else if (arr[id] % 13 == 3)
-                hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], 5);
-            else if (arr[id] % 13 == 8 || arr[id] % 13 == 11)
-                hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], 10);
-            else
-                hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], 0);
+            hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], scores[arr[id]]);
         }
     }
 
@@ -166,6 +178,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         for (int i = 0;i < hand.Length; i++)
         {
             HandImage[i].sprite = hand[i].sprite;
+            hand[i].cardpos = i;
         }
     }
 
@@ -221,5 +234,58 @@ public class GameManager : MonoBehaviourPunCallbacks
     void ReceiveSmallTichu(int p)
     {
         PlayerBtn[p].transform.GetChild(4).gameObject.SetActive(true);
+    }
+
+    public void CardSwap()
+    {
+        ConformBtn.interactable = false;
+        GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Wait for other players..";
+        PV.RPC("SendCardSwap", RpcTarget.MasterClient, GiveCardImage.giveCard[0].id, GiveCardImage.giveCard[1].id, GiveCardImage.giveCard[2].id, pos);
+        isChangeCard[pos] = true;
+        for (int i = 0; i < 14; i++)
+            CardClick.interactable[i] = false;
+    }
+
+    [PunRPC]
+    public void SendCardSwap(int a, int b, int c, int p)
+    {
+        isChangeCard[p] = true;
+        CardSwapPack[p * 3] = a;
+        CardSwapPack[p * 3 + 1] = b;
+        CardSwapPack[p * 3 + 2] = c;
+        if ((isChangeCard[0] && isChangeCard[1]) && (isChangeCard[2] && isChangeCard[3]))
+            PV.RPC("ReceiveCardSwap", RpcTarget.All, CardSwapPack);
+    }
+    [PunRPC]
+    public void ReceiveCardSwap(int[] swapPack)
+    {
+        GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Check your cards";
+        switch (pos){
+            case 0:
+                GiveCardImage.giveCard[0] = new Card(cardSprite[swapPack[5]], names[swapPack[5]], swapPack[5], scores[swapPack[5]]);
+                GiveCardImage.giveCard[1] = new Card(cardSprite[swapPack[7]], names[swapPack[7]], swapPack[7], scores[swapPack[7]]);
+                GiveCardImage.giveCard[2] = new Card(cardSprite[swapPack[9]], names[swapPack[9]], swapPack[9], scores[swapPack[9]]);
+                break;
+            case 1:
+                GiveCardImage.giveCard[0] = new Card(cardSprite[swapPack[8]], names[swapPack[8]], swapPack[8], scores[swapPack[8]]);
+                GiveCardImage.giveCard[1] = new Card(cardSprite[swapPack[10]], names[swapPack[10]], swapPack[10], scores[swapPack[10]]);
+                GiveCardImage.giveCard[2] = new Card(cardSprite[swapPack[0]], names[swapPack[0]], swapPack[0], scores[swapPack[0]]);
+                break;
+            case 2:
+                GiveCardImage.giveCard[0] = new Card(cardSprite[swapPack[11]], names[swapPack[11]], swapPack[11], scores[swapPack[11]]);
+                GiveCardImage.giveCard[1] = new Card(cardSprite[swapPack[1]], names[swapPack[1]], swapPack[1], scores[swapPack[1]]);
+                GiveCardImage.giveCard[2] = new Card(cardSprite[swapPack[3]], names[swapPack[3]], swapPack[3], scores[swapPack[3]]);
+                break;
+            case 3:
+                GiveCardImage.giveCard[0] = new Card(cardSprite[swapPack[2]], names[swapPack[2]], swapPack[2], scores[swapPack[2]]);
+                GiveCardImage.giveCard[1] = new Card(cardSprite[swapPack[4]], names[swapPack[4]], swapPack[4], scores[swapPack[4]]);
+                GiveCardImage.giveCard[2] = new Card(cardSprite[swapPack[6]], names[swapPack[6]], swapPack[6], scores[swapPack[6]]);
+                break;
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            GameObject.FindGameObjectWithTag("CardSwapImage").transform.GetChild(i).GetComponent<Image>().sprite = GiveCardImage.giveCard[i].sprite;
+        }
+        ConformBtn.interactable = true;
     }
 }

@@ -11,16 +11,21 @@ public class GiveCardImage : MonoBehaviour, IPointerClickHandler
     public static Card[] giveCard = new Card[3];
     public Sprite empty;
     Sprite panel;
-    int[] cardPos = new int[3];
+    public static int[] cardPos = new int[3];
 
     void Awake()
     {
+        giveCard[0] = null;
+        giveCard[1] = null;
+        giveCard[2] = null;
         panel = GetComponent<Image>().sprite;
     }
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button == PointerEventData.InputButton.Left)
         {
+            if (GameManager.isChangeCard[GameManager.pos])
+                return;
             Debug.Log(id);
             if (giveCard[id] != null)
             {
@@ -36,7 +41,7 @@ public class GiveCardImage : MonoBehaviour, IPointerClickHandler
                 if (GameManager.hand[i].isSelected)
                 {
                     GameManager.hand[i].isSelected = false;
-                    GameObject.FindGameObjectsWithTag("HandImage")[i].transform.position -= new Vector3(0, 0.5f, 0);
+                    GameObject.FindGameObjectWithTag("Hand").transform.GetChild(i).transform.position -= new Vector3(0, 0.5f, 0);
                     giveCard[id] = new Card(GameManager.hand[i].sprite, GameManager.hand[i].name, GameManager.hand[i].id, GameManager.hand[i].score);
                     cardPos[id] = i;
                     this.GetComponent<Image>().sprite = giveCard[id].sprite;

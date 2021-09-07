@@ -9,6 +9,7 @@ public class Card
     public string name;
     public int score;
     public bool isSelected { get; set; }
+    public int cardpos { get; set; }
 
     public Card(Sprite sprite, string name,int id, int score)
     {

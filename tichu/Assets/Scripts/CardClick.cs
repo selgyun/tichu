@@ -7,6 +7,15 @@ public class CardClick : MonoBehaviour, IPointerClickHandler
 {
     public static bool[] interactable = {true, true, true, true, true, true, true, true, true, true, true, true, true, true};
     public int id;
+
+    private void Awake()
+    {
+        for(int i = 0; i < 14; i++)
+        {
+            interactable[i] = true;
+        }
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
         if(eventData.button == PointerEventData.InputButton.Left)
@@ -22,6 +31,7 @@ public class CardClick : MonoBehaviour, IPointerClickHandler
             return;
         if (!GameManager.gameStart[GameManager.pos])
             return;
+
         GameManager.hand[id].isSelected = !GameManager.hand[id].isSelected;
 
         if (!GameManager.isChangeCard[GameManager.pos])
@@ -33,7 +43,7 @@ public class CardClick : MonoBehaviour, IPointerClickHandler
                 if (GameManager.hand[i].isSelected)
                 {
                     GameManager.hand[i].isSelected = false;
-                    GameObject.FindGameObjectsWithTag("HandImage")[i].transform.position -= new Vector3(0, 0.5f, 0);
+                    GameObject.FindGameObjectWithTag("Hand").transform.GetChild(i).transform.position -= new Vector3(0, 0.5f, 0);
                 }
             }
         }
