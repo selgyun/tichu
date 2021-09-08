@@ -762,10 +762,10 @@ RectTransform:
   m_Father: {fileID: 1507349802}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 780, y: -80}
+  m_SizeDelta: {x: 500, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &192295506
 MonoBehaviour:
@@ -889,10 +889,10 @@ RectTransform:
   m_Father: {fileID: 1507349802}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 260, y: -220}
+  m_SizeDelta: {x: 500, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &211617965
 MonoBehaviour:
@@ -1625,6 +1625,7 @@ MonoBehaviour:
   - {fileID: -3383153116974929455, guid: d89830ecdeb5d0a45913092577837ef9, type: 3}
   - {fileID: 5368604250078889689, guid: d89830ecdeb5d0a45913092577837ef9, type: 3}
   empty: {fileID: 21300000, guid: 8061ff9b3555a444085a23c4cc77a88f, type: 3}
+  panel: {fileID: 21300000, guid: 35cfc17e50c12fa4aadb6497dff02147, type: 3}
   HandImage:
   - {fileID: 407282165}
   - {fileID: 1800882097}
@@ -3658,7 +3659,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1101733117
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4185,10 +4186,10 @@ RectTransform:
   m_Father: {fileID: 1507349802}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 260, y: -80}
+  m_SizeDelta: {x: 500, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1207342240
 MonoBehaviour:
@@ -6839,6 +6840,7 @@ GameObject:
   - component: {fileID: 1685040599}
   - component: {fileID: 1685040601}
   - component: {fileID: 1685040600}
+  - component: {fileID: 1685040602}
   m_Layer: 5
   m_Name: CardField
   m_TagString: Untagged
@@ -6919,6 +6921,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1685040598}
   m_CullTransparentMesh: 1
+--- !u!114 &1685040602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685040598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e61e3e008b37b1b4e9df95ce3527d95d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gm: {fileID: 0}
 --- !u!1 &1688356638
 GameObject:
   m_ObjectHideFlags: 0
@@ -8497,6 +8512,21 @@ MonoBehaviour:
       - m_Target: {fileID: 499633691}
         m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
         m_MethodName: CardSwap
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  onCardSwapDone:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 499633691}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: CardSwapDone
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

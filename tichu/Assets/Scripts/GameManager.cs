@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public Sprite[] cardSprite;
     int[] scores = new int[56];
     public Sprite empty;
+    public Sprite panel;
 
     [Header("UI")]
     public Image[] HandImage;
@@ -38,13 +39,16 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     private int[] deck = new int[56];
     public static Card[] hand = new Card[14];
-    public static int[] CardSwapPack = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    public static int[] CardSwapPack = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
     public static int pos = 0;
-    public static bool[] gameStart = new bool[4];
+    public static bool[] gameStart = new bool[4]; // 처음 게임 시작 판단
     public static bool isGreatTichu;
     public static bool isSmallTichu;
-    public static bool[] isChangeCard = new bool[4];
+    public static bool[] isChangeCard = new bool[4]; // 카드 교환 여부 판단
+    public static int[] actions = { 0, 0, 0, 0 }; // pass했는지 카드 냈는지 확인
+    public enum Rank { Empty, Single, Pair, ContinuousPair, Triple, Straight, FullHouse, FourOfaKind, StraightFlush, Bird, Dragon, Phoenix, Dog}
+
     public PhotonView PV;
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
@@ -114,7 +118,6 @@ public class GameManager : MonoBehaviourPunCallbacks
         Shuffle(deck, UnityEngine.Random.Range(0, 100));
         PV.RPC("GetHand", RpcTarget.All, deck);
         PV.RPC("ViewHand", RpcTarget.All);
-
     }
 
     public static int[] Shuffle(int[] array, int seed)
@@ -246,6 +249,18 @@ public class GameManager : MonoBehaviourPunCallbacks
             CardClick.interactable[i] = false;
     }
 
+    public void CardSwapDone()
+    {
+        ConformBtn.interactable = false;
+        GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Place a card by touching!";
+        for(int i = 0; i < 3; i++)
+        {
+            GameObject.FindGameObjectWithTag("CardSwapImage").transform.GetChild(i).GetComponent<Image>().sprite = panel;
+            GiveCardImage.giveCard[i] = null;
+        }
+        GiveCardPanel.gameObject.SetActive(false);
+    }
+
     [PunRPC]
     public void SendCardSwap(int a, int b, int c, int p)
     {
@@ -287,5 +302,141 @@ public class GameManager : MonoBehaviourPunCallbacks
             GameObject.FindGameObjectWithTag("CardSwapImage").transform.GetChild(i).GetComponent<Image>().sprite = GiveCardImage.giveCard[i].sprite;
         }
         ConformBtn.interactable = true;
+    }
+
+
+    [PunRPC]
+    public void Turn(int cur)
+    {
+        for (int i = 0;i < 4;i++)
+        {
+            // 턴을 표시해 주는 장치
+        }
+
+        if (cur != pos)
+        {
+            ConformBtn.interactable = false;
+            PassBtn.interactable = false;
+            return;
+        }
+    }
+
+    public Rank judgeRank(int[] cardIds)
+    // 정렬된 상태라 가정
+    {
+        switch (cardIds.Length)
+        {
+            case 0:
+                return Rank.Empty;
+            case 1:
+                switch (cardIds[0])
+                {
+                    case 52:
+                        return Rank.Bird;
+                    case 53:
+                        return Rank.Dragon;
+                    case 54:
+                        return Rank.Phoenix;
+                    case 55:
+                        return Rank.Dog;
+                    default:
+                        break;
+                }
+                return Rank.Single;
+            case 2:
+                if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]))
+                {
+                    return Rank.Pair;
+                }
+                else if (cardIds[0] == 54 || cardIds[1] == 54)
+                    return Rank.Pair;
+
+                return Rank.Empty;
+            case 3: // 피닉스 처리해야함
+                if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[1]].Split()[1]) == Int32.Parse(names[cardIds[2]].Split()[1]))
+                {
+                    return Rank.Triple;
+                }
+                return Rank.Empty;
+            case 4: // 피닉스 처리 해야함
+                if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[1]].Split()[1]) == Int32.Parse(names[cardIds[2]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[2]].Split()[1]) == Int32.Parse(names[cardIds[3]].Split()[1]))
+                {
+                    return Rank.FourOfaKind;
+                }
+                if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[2]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[2]].Split()[1]) == Int32.Parse(names[cardIds[3]].Split()[1]))
+                {
+                    return Rank.ContinuousPair;
+                }
+                return Rank.Empty;
+            default:
+                bool isStraight = true;
+                int cnt = 0;
+                bool isStraightFlush = true;
+                bool isPhoenix = false;
+                bool isContinuousPair = true;
+
+                for (int i = 0; i < cardIds.Length - 1; i++)
+                {
+                    if (Int32.Parse(names[cardIds[i]].Split()[1]) + 1 != Int32.Parse(names[cardIds[i + 1]].Split()[1]))
+                    {
+                        isStraight = false;
+                        cnt++;
+                    }
+                    if (names[cardIds[i]].Split()[0] != names[cardIds[i + 1]].Split()[0])
+                    {
+                        isStraightFlush = false;
+                    }
+                    if (cardIds[i] == 54)
+                        isPhoenix = true;
+                }
+                if (isStraightFlush)
+                {
+                    return Rank.StraightFlush;
+                }
+                if (isStraight || (isPhoenix && cnt <= 2))
+                {
+                    return Rank.Straight;
+                }
+                if (cardIds.Length % 2 != 0)
+                    return Rank.Empty;
+                cnt = 0;
+                for (int i = 0; i <cardIds.Length-2; i += 2)
+                {
+                    if (Int32.Parse(names[cardIds[i]].Split()[1]) == Int32.Parse(names[cardIds[i+1]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[i+1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i+2]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[i+2]].Split()[1]) == Int32.Parse(names[cardIds[i+3]].Split()[1]))
+                    {
+                        continue;
+                    }
+                    isContinuousPair = false;
+                    cnt += 1;
+                    if (isPhoenix)
+                    {
+                        if (Int32.Parse(names[cardIds[i]].Split()[1]) == Int32.Parse(names[cardIds[i + 1]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[i + 2]].Split()[1]) == Int32.Parse(names[cardIds[i + 3]].Split()[1]))
+                        {
+                            if (Int32.Parse(names[cardIds[i]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 2]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[i]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 3]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[i+1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 2]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[i+1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 3]].Split()[1]))
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                    break;
+                }
+                if (isContinuousPair || (isPhoenix && cnt <= 2))
+                {
+                    return Rank.ContinuousPair;
+                }
+                return Rank.Empty;
+        }
+        return Rank.Empty;
     }
 }

@@ -7,14 +7,18 @@ using UnityEngine.Events;
 public class ConformButton : MonoBehaviour
 {
     public UnityEvent onCardSwap;
+    public UnityEvent onCardSwapDone;
 
     public GameManager gmr;
 
-    bool receiveCard = false;
+    public static bool receiveCard = false;
     private void Awake()
     {
+        receiveCard = false;
         this.transform.GetComponent<Image>().color = Color.green;
     }
+
+
 
     public void Conform()
     {
@@ -40,6 +44,11 @@ public class ConformButton : MonoBehaviour
                     GameManager.hand[GiveCardImage.cardPos[i]] = GiveCardImage.giveCard[i];
                 }
                 gmr.ViewHand();
+                onCardSwapDone.Invoke();
+            }
+            else
+            {
+
             }
         }
     }
