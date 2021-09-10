@@ -1,5 +1,6 @@
 using System.Collections;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +16,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     int[] scores = new int[56];
     public Sprite empty;
     public Sprite panel;
+    Card emptyCard;
 
     [Header("UI")]
     public Image[] HandImage;
@@ -47,7 +49,14 @@ public class GameManager : MonoBehaviourPunCallbacks
     public static bool isSmallTichu;
     public static bool[] isChangeCard = new bool[4]; // 카드 교환 여부 판단
     public static int[] actions = { 0, 0, 0, 0 }; // pass했는지 카드 냈는지 확인
-    public enum Rank { Empty, Single, Pair, ContinuousPair, Triple, Straight, FullHouse, FourOfaKind, StraightFlush, Bird, Dragon, Phoenix, Dog}
+    public static int curTurn = -1;
+    public static Rank curRank = Rank.Empty;
+    public static int curRankPower = 0;
+    public enum Rank { Empty, Single, Pair, ContinuousPair, Triple, Straight, FullHouse, FourOfaKind, StraightFlush, Bird, Dragon, Phoenix, Dog }
+
+    Color blueTeamColor = new Color(203/255f, 225/255f, 255/255f);
+    Color redTeamColor = new Color(255/255f, 184/255f, 184/255f);
+    Color turnColor = new Color(131/255f, 255/255f, 112/255f);
 
     public PhotonView PV;
 
@@ -58,8 +67,9 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     void Awake()
     {
+        emptyCard = new Card(empty, "null", -1, 0);
         getPos();
-        for(int i = 0;i < 56; i++)
+        for (int i = 0; i < 56; i++)
         {
             if (i == 53)
                 scores[i] = 25;
@@ -72,7 +82,7 @@ public class GameManager : MonoBehaviourPunCallbacks
             else
                 scores[i] = 0;
         }
-        for(int i = 0;i <PhotonNetwork.PlayerList.Length;i++)
+        for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
             PlayerBtn[i].transform.GetChild(0).GetComponent<Text>().text = PhotonNetwork.PlayerList[i].NickName;
         newGame();
     }
@@ -94,18 +104,25 @@ public class GameManager : MonoBehaviourPunCallbacks
         {
             isChangeCard[i] = false;
             gameStart[i] = false;
+            PlayerBtn[i].transform.GetChild(1).transform.GetComponent<Text>().text = "14";
+            PlayerBtn[i].transform.GetChild(2).transform.GetComponent<Text>().text = "0";
             PlayerBtn[i].transform.GetChild(3).gameObject.SetActive(false);
             PlayerBtn[i].transform.GetChild(4).gameObject.SetActive(false);
             PlayerBtn[i].transform.GetChild(5).gameObject.SetActive(true);
         }
         isGreatTichu = false;
         isSmallTichu = false;
+        InitHandRankingView();
+    }
+
+    void InitHandRankingView()
+    {
         for (int i = 0; i < 14; i++)
             HandRankingView[i].sprite = empty;
     }
     void InitDeck()
     {
-        for (int i = 0;i < 56; i++)
+        for (int i = 0; i < 56; i++)
         {
             deck[i] = i;
         }
@@ -123,7 +140,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public static int[] Shuffle(int[] array, int seed)
     {
         System.Random prng = new System.Random(seed);
-        for (int i = 0;i < array.Length - 1; i++)
+        for (int i = 0; i < array.Length - 1; i++)
         {
             int randomIndex = prng.Next(i, array.Length);
             int tempItem = array[randomIndex];
@@ -136,7 +153,7 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     void getPos()
     {
-        for (int i = 0;i < PhotonNetwork.PlayerList.Length; i++)
+        for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
         {
             if (PhotonNetwork.PlayerList[i].IsLocal)
             {
@@ -149,7 +166,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     [PunRPC]
     void GetHand(int[] arr)
     {
-        for(int i = 0;i < 14; i++)
+        for (int i = 0; i < 14; i++)
         {
             int id = pos * 14 + i;
             hand[i] = new Card(cardSprite[arr[id]], names[arr[id]], arr[id], scores[arr[id]]);
@@ -165,23 +182,30 @@ public class GameManager : MonoBehaviourPunCallbacks
 
             for (int i = 0; i < 8; i++)
                 temp[i] = hand[i];
-            Array.Sort(temp, delegate (Card a, Card b) {
+            Array.Sort(temp, delegate (Card a, Card b)
+            {
                 return Int32.Parse(a.name.Split()[1]) - Int32.Parse(b.name.Split()[1]);
             });
-            for (int i = 0; i < 8;i++)
+            for (int i = 0; i < 8; i++)
                 HandImage[i].sprite = temp[i].sprite;
-            for (int i = 8; i < 14;i++)
+            for (int i = 8; i < 14; i++)
                 HandImage[i].sprite = empty;
-            
+
             return;
         }
-        Array.Sort(hand, delegate (Card a, Card b) {
+        Array.Sort(hand, delegate (Card a, Card b)
+        {
             return Int32.Parse(a.name.Split()[1]) - Int32.Parse(b.name.Split()[1]);
         });
-        for (int i = 0;i < hand.Length; i++)
+        for (int i = 0; i < hand.Length; i++)
         {
             HandImage[i].sprite = hand[i].sprite;
             hand[i].cardpos = i;
+        }
+        for (int i = hand.Length; i < 14; i++)
+        {
+            HandImage[i].sprite = empty;
+            CardClick.interactable[i] = false;
         }
     }
 
@@ -214,7 +238,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         gameStart[p] = true;
         if (!PhotonNetwork.IsMasterClient)
             return;
-        if((gameStart[0] && gameStart[1]) && (gameStart[2] && gameStart[3]))
+        if ((gameStart[0] && gameStart[1]) && (gameStart[2] && gameStart[3]))
         {
             PV.RPC("GameStart", RpcTarget.All);
         }
@@ -222,7 +246,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     [PunRPC]
     void GameStart()
     {
-        for(int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
             PlayerBtn[i].transform.GetChild(5).gameObject.SetActive(true);
         GTBar.SetActive(false);
         InGameBtnBar.SetActive(true);
@@ -253,12 +277,13 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         ConformBtn.interactable = false;
         GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Place a card by touching!";
-        for(int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)
         {
             GameObject.FindGameObjectWithTag("CardSwapImage").transform.GetChild(i).GetComponent<Image>().sprite = panel;
             GiveCardImage.giveCard[i] = null;
         }
         GiveCardPanel.gameObject.SetActive(false);
+        FindBird();
     }
 
     [PunRPC]
@@ -269,13 +294,17 @@ public class GameManager : MonoBehaviourPunCallbacks
         CardSwapPack[p * 3 + 1] = b;
         CardSwapPack[p * 3 + 2] = c;
         if ((isChangeCard[0] && isChangeCard[1]) && (isChangeCard[2] && isChangeCard[3]))
+        {
             PV.RPC("ReceiveCardSwap", RpcTarget.All, CardSwapPack);
+        }
+
     }
     [PunRPC]
     public void ReceiveCardSwap(int[] swapPack)
     {
         GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Check your cards";
-        switch (pos){
+        switch (pos)
+        {
             case 0:
                 GiveCardImage.giveCard[0] = new Card(cardSprite[swapPack[5]], names[swapPack[5]], swapPack[5], scores[swapPack[5]]);
                 GiveCardImage.giveCard[1] = new Card(cardSprite[swapPack[7]], names[swapPack[7]], swapPack[7], scores[swapPack[7]]);
@@ -304,21 +333,96 @@ public class GameManager : MonoBehaviourPunCallbacks
         ConformBtn.interactable = true;
     }
 
+    public void PassButton()
+    {
+        if (curTurn == pos)
+        {
+            PV.RPC("ActivatePassImage", RpcTarget.All, pos);
+            PV.RPC("NextTurn", RpcTarget.All, 0);
+        }
+    }
+    [PunRPC]
+    public void ActivatePassImage(int p)
+    {
+        PlayerBtn[p].transform.GetChild(6).gameObject.SetActive(true);
+        PlayerBtn[p].transform.GetChild(6).transform.GetComponent<Animator>().SetTrigger("Show");
+    }
 
     [PunRPC]
-    public void Turn(int cur)
+    public void Turn()
     {
-        for (int i = 0;i < 4;i++)
+        // 턴 플레이어 녹색 표기
+        for (int i = 0; i < 4; i++)
         {
-            // 턴을 표시해 주는 장치
+            if (i == curTurn)
+                PlayerBtn[i].GetComponent<Image>().color = turnColor;
+            else if (i % 2 == 0)
+                PlayerBtn[i].GetComponent<Image>().color = blueTeamColor;
+            else
+                PlayerBtn[i].GetComponent<Image>().color = redTeamColor;
         }
 
-        if (cur != pos)
+        if (curTurn != pos)
         {
-            ConformBtn.interactable = false;
+            if(ConformButton.receiveCard)
+                ConformBtn.interactable = false;
             PassBtn.interactable = false;
             return;
         }
+        ConformBtn.interactable = true;
+        // 내가 점수를 먹어야 되는 경우
+        if ((actions[pos] == 1 && actions[(pos + 1) % 4] == 0) && (actions[(pos + 2) % 4] == 0 && actions[(pos + 3) % 4] == 0))
+        {
+            ConformBtn.transform.GetChild(0).GetComponent<Text>().text = "Get Scores";
+        }
+        else
+        {
+            ConformBtn.transform.GetChild(0).GetComponent<Text>().text = "Conform";
+        }
+        // 첫 시작일 경우
+        if ((actions[0] == 0 && actions[1] == 0) && (actions[2] == 0 && actions[3] == 0))
+        {
+            HandRankingText.text = "Empty";
+            CurScoreText.text = "Score: 0";
+            PassBtn.interactable = false;
+        }
+        else
+            PassBtn.interactable = true;
+    }
+    public void FindBird()
+    {
+        for (int i = 0; i < hand.Length; i++)
+        {
+            if (hand[i].id == 52)
+            {
+                PV.RPC("SetBird", RpcTarget.All, pos);
+                break;
+            }
+        }
+    }
+
+    [PunRPC]
+    public void NextTurn(int act)
+    {
+        actions[curTurn] = act;
+        curTurn = (curTurn + 1) % 4;
+        PV.RPC("Turn", RpcTarget.All);
+    }
+
+    [PunRPC]
+    public void SetBird(int cur)
+    {
+        curTurn = cur;
+        for(int i = 0;i < 14; i++)
+        {
+            CardClick.interactable[i] = true;
+            hand[i].isSelected = false;
+        }
+        HandRankingText.text = "Empty";
+        CurScoreText.text = "Score: 0";
+        for (int i = 0; i < 4; i++)
+            PlayerBtn[i].transform.GetChild(5).gameObject.SetActive(false);
+        PV.RPC("Turn", RpcTarget.All);
     }
 
     public Rank judgeRank(int[] cardIds)
@@ -352,19 +456,41 @@ public class GameManager : MonoBehaviourPunCallbacks
                     return Rank.Pair;
 
                 return Rank.Empty;
-            case 3: // 피닉스 처리해야함
+            case 3:
+                if (cardIds[0] == 54)
+                {
+                    if (Int32.Parse(names[cardIds[1]].Split()[1]) == Int32.Parse(names[cardIds[2]].Split()[1]))
+                    {
+                        return Rank.Triple;
+                    }
+                }
                 if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) &&
                     Int32.Parse(names[cardIds[1]].Split()[1]) == Int32.Parse(names[cardIds[2]].Split()[1]))
                 {
                     return Rank.Triple;
                 }
                 return Rank.Empty;
-            case 4: // 피닉스 처리 해야함
+            case 4:
                 if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) &&
                     Int32.Parse(names[cardIds[1]].Split()[1]) == Int32.Parse(names[cardIds[2]].Split()[1]) &&
                     Int32.Parse(names[cardIds[2]].Split()[1]) == Int32.Parse(names[cardIds[3]].Split()[1]))
                 {
                     return Rank.FourOfaKind;
+                }
+                if (cardIds[0] == 54)
+                {
+                    if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) ||
+                        Int32.Parse(names[cardIds[1]].Split()[1]) == Int32.Parse(names[cardIds[2]].Split()[1]) ||
+                        Int32.Parse(names[cardIds[2]].Split()[1]) == Int32.Parse(names[cardIds[3]].Split()[1]))
+                    {
+                        if (Int32.Parse(names[cardIds[0]].Split()[1]) + 1 == Int32.Parse(names[cardIds[2]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[0]].Split()[1]) + 1 == Int32.Parse(names[cardIds[3]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[2]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[3]].Split()[1]))
+                        {
+                            return Rank.ContinuousPair;
+                        }
+                    }
                 }
                 if (Int32.Parse(names[cardIds[0]].Split()[1]) == Int32.Parse(names[cardIds[1]].Split()[1]) &&
                     Int32.Parse(names[cardIds[1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[2]].Split()[1]) &&
@@ -394,7 +520,7 @@ public class GameManager : MonoBehaviourPunCallbacks
                     if (cardIds[i] == 54)
                         isPhoenix = true;
                 }
-                if (isStraightFlush)
+                if (isStraightFlush && isStraight) 
                 {
                     return Rank.StraightFlush;
                 }
@@ -405,11 +531,11 @@ public class GameManager : MonoBehaviourPunCallbacks
                 if (cardIds.Length % 2 != 0)
                     return Rank.Empty;
                 cnt = 0;
-                for (int i = 0; i <cardIds.Length-2; i += 2)
+                for (int i = 0; i < cardIds.Length - 2; i += 2)
                 {
-                    if (Int32.Parse(names[cardIds[i]].Split()[1]) == Int32.Parse(names[cardIds[i+1]].Split()[1]) &&
-                    Int32.Parse(names[cardIds[i+1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i+2]].Split()[1]) &&
-                    Int32.Parse(names[cardIds[i+2]].Split()[1]) == Int32.Parse(names[cardIds[i+3]].Split()[1]))
+                    if (Int32.Parse(names[cardIds[i]].Split()[1]) == Int32.Parse(names[cardIds[i + 1]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[i + 1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 2]].Split()[1]) &&
+                    Int32.Parse(names[cardIds[i + 2]].Split()[1]) == Int32.Parse(names[cardIds[i + 3]].Split()[1]))
                     {
                         continue;
                     }
@@ -418,12 +544,13 @@ public class GameManager : MonoBehaviourPunCallbacks
                     if (isPhoenix)
                     {
                         if (Int32.Parse(names[cardIds[i]].Split()[1]) == Int32.Parse(names[cardIds[i + 1]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[i + 1]].Split()[1]) == Int32.Parse(names[cardIds[i + 2]].Split()[1]) ||
                             Int32.Parse(names[cardIds[i + 2]].Split()[1]) == Int32.Parse(names[cardIds[i + 3]].Split()[1]))
                         {
                             if (Int32.Parse(names[cardIds[i]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 2]].Split()[1]) ||
                             Int32.Parse(names[cardIds[i]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 3]].Split()[1]) ||
-                            Int32.Parse(names[cardIds[i+1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 2]].Split()[1]) ||
-                            Int32.Parse(names[cardIds[i+1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 3]].Split()[1]))
+                            Int32.Parse(names[cardIds[i + 1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 2]].Split()[1]) ||
+                            Int32.Parse(names[cardIds[i + 1]].Split()[1]) + 1 == Int32.Parse(names[cardIds[i + 3]].Split()[1]))
                             {
                                 continue;
                             }
@@ -437,6 +564,84 @@ public class GameManager : MonoBehaviourPunCallbacks
                 }
                 return Rank.Empty;
         }
-        return Rank.Empty;
+    }
+
+    public void Bet(int[] betCards, Rank rank)
+    {
+        List<Card> tmp = new List<Card>();
+        for (int i = 0; i < hand.Length; i++)
+        {
+            if (hand[i].isSelected)
+            {
+                hand[i].isSelected = false;
+                GameObject.FindGameObjectWithTag("Hand").transform.GetChild(i).position -= new Vector3(0, 0.5f, 0);
+            }
+            tmp.Add(hand[i]);
+        }
+        for (int i = 0;i < betCards.Length; i++)
+        {
+            for(int j = 0; j < hand.Length; j++)
+            {
+                if (tmp[j].id == betCards[i])
+                    tmp[j] = emptyCard;
+            }
+        }
+        while (tmp.Contains(emptyCard))
+            tmp.Remove(emptyCard);
+        hand = tmp.ToArray();
+        Debug.Log("Hand num:" + hand.Length);
+        PV.RPC("ShowBet", RpcTarget.All, betCards, rank, pos, hand.Length);
+        ViewHand();
+        PV.RPC("NextTurn", RpcTarget.All, 1);
+    }
+
+    [PunRPC]
+    public void ShowBet(int[] betCards, Rank rank, int p, int l)
+    {
+        //피닉스 처리 나중에!
+        int jump = 0;
+        int sc = 0;
+        if (betCards.Length < 8)
+            jump = 1;
+        InitHandRankingView();
+        for (int i = 0; i < betCards.Length; i++)
+        {
+            HandRankingView[i + (jump*i)].sprite = cardSprite[betCards[i]];
+            sc += scores[betCards[i]];
+            curRankPower = Int32.Parse(names[betCards[i]].Split()[1]);
+        }
+        PlayerBtn[p].transform.GetChild(1).GetComponent<Text>().text = l.ToString();
+        curRank = rank;
+        HandRankingText.text = curRankPower.ToString()+ " " + rank.ToString();
+        CurScoreText.text = "Score: " + (sc + Int32.Parse(CurScoreText.text.Split()[1])).ToString();
+    }
+
+    public void GetScores()
+    {
+        ConformBtn.transform.GetChild(0).transform.GetComponent<Text>().text = "Conform";
+        int curSc = Int32.Parse(CurScoreText.text.Split()[1]) + Int32.Parse(PlayerBtn[pos].transform.GetChild(2).transform.GetComponent<Text>().text);
+        PV.RPC("PlayerSetScore", RpcTarget.All, pos, curSc);
+    }
+
+    [PunRPC]
+    public void PlayerSetScore(int p, int sc)
+    {
+        for (int i = 0; i < 14; i++)
+        {
+            HandRankingView[i].sprite = empty;
+        }
+        curRank = Rank.Empty;
+        curRankPower = 0;
+        HandRankingText.text = "Empty";
+        PlayerBtn[p].transform.GetChild(2).transform.GetComponent<Text>().text = sc.ToString();
+        CurScoreText.text = "Score: 0";
+        for (int i = 0; i < 4; i++)
+        {
+            if (PlayerBtn[i].transform.GetChild(6).gameObject.activeSelf)
+            {
+                PlayerBtn[i].transform.GetChild(6).transform.GetComponent<Image>().color = Color.white;
+                PlayerBtn[i].transform.GetChild(6).gameObject.SetActive(false);
+            }
+        }
     }
 }
