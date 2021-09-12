@@ -37,6 +37,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public Text HandRankingText;
     public Text TeamBlueText;
     public Text TeamRedText;
+    public Text BirdWishText;
 
 
     private int[] deck = new int[56];
@@ -48,10 +49,12 @@ public class GameManager : MonoBehaviourPunCallbacks
     public static bool isGreatTichu;
     public static bool isSmallTichu;
     public static bool[] isChangeCard = new bool[4]; // 카드 교환 여부 판단
+
     public static int[] actions = { 0, 0, 0, 0 }; // pass했는지 카드 냈는지 확인
     public static int curTurn = -1;
     public static Rank curRank = Rank.Empty;
     public static int curRankPower = 0;
+    public static int BIRDWISH = 0;
     public enum Rank { Empty, Single, Pair, ContinuousPair, Triple, Straight, FullHouse, FourOfaKind, StraightFlush, Bird, Dragon, Phoenix, Dog }
 
     Color blueTeamColor = new Color(203/255f, 225/255f, 255/255f);
@@ -91,10 +94,16 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         Init();
         Mulligan();
-
     }
     void Init()
     {
+        BIRDWISH = 0;
+        curTurn = -1;
+        curRank = Rank.Empty;
+        curRankPower = 0;
+        BirdWishText.text = "Wish: ";
+        BirdWishText.gameObject.SetActive(false);
+        HandRankingText.text = "Empty";
         PassBtn.interactable = false;
         BombBtn.interactable = false;
         GTBar.SetActive(true);
@@ -102,6 +111,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         GiveCardPanel.SetActive(false);
         for (int i = 0; i < 4; i++)
         {
+            actions[i] = 0;
             isChangeCard[i] = false;
             gameStart[i] = false;
             PlayerBtn[i].transform.GetChild(1).transform.GetComponent<Text>().text = "14";
@@ -151,6 +161,16 @@ public class GameManager : MonoBehaviourPunCallbacks
         return array;
     }
 
+    public int GetCurHandRankingLength()
+    {
+        int ans = 0;
+        for (int i = 0;i < 14; i++)
+        {
+            if (HandRankingView[i].sprite != empty)
+                ans += 1;
+        }
+        return ans;
+    }
     void getPos()
     {
         for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
@@ -266,7 +286,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public void CardSwap()
     {
         ConformBtn.interactable = false;
-        GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Wait for other players..";
+        GiveCardPanel.transform.GetChild(1).GetComponent<Text>().text = "Waiting for other players..";
         PV.RPC("SendCardSwap", RpcTarget.MasterClient, GiveCardImage.giveCard[0].id, GiveCardImage.giveCard[1].id, GiveCardImage.giveCard[2].id, pos);
         isChangeCard[pos] = true;
         for (int i = 0; i < 14; i++)
@@ -351,6 +371,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void Turn()
     {
+        Debug.Log(curRank.ToString());
         // 턴 플레이어 녹색 표기
         for (int i = 0; i < 4; i++)
         {
@@ -566,6 +587,117 @@ public class GameManager : MonoBehaviourPunCallbacks
         }
     }
 
+    public bool checkBirdWish(int card_num, int len)
+    {
+        // 참새를 내는 경우의 수 -> 1. 싱글, 2. 스트레이트
+        bool isPhoenix = false;
+        bool isCardExist = false;
+        int targetPos = -1;
+        bool[] checkStraight = { false, false, false, false, false, false, false, false, false, false, false, false, false };
+        for (int i = 0;i < hand.Length; i++)
+        {
+            if (hand[i].id == 54)
+                isPhoenix = true;
+            if (hand[i].id % 13 == card_num - 2)
+            {
+                isCardExist = true;
+                targetPos = hand[i].cardpos;
+            }
+        }
+        if (!isCardExist)
+            return false;
+        else
+        {
+            switch (len)
+            {
+                case 1:
+                    if (curRankPower < card_num)
+                        return true;
+                    else
+                        return false;
+                default:
+                    for(int i = 0;i < hand.Length; i++)
+                    {
+                        if(2 <= Int32.Parse(hand[i].name.Split()[1]))
+                        {
+                            checkStraight[Int32.Parse(hand[i].name.Split()[1])] = true;
+                        }
+                    }
+                    int l = card_num;
+                    int r = card_num;
+                    int maxPower = 0;
+                    for(int i = r; i < 15; i++)
+                    {
+                        if (checkStraight[i])
+                        {
+                            r += 1;
+                            maxPower = Int32.Parse(hand[i].name.Split()[1]);
+                        }
+                        else
+                            break;
+                    }
+                    for(int i = l; i > 1; i--)
+                    {
+                        if (checkStraight[i])
+                            l -= 1;
+                        else
+                            break;
+                    }
+                    if (r - l - 1 >= len && maxPower > curRankPower)
+                        return true;
+                    else
+                    {
+                        if (isPhoenix)
+                        {
+                            int cnt = 0;
+                            int return_r = r;
+                            for (int i = r; i < 15; i++)
+                            {
+                                if (checkStraight[i])
+                                {
+                                    r += 1;
+                                    maxPower = Int32.Parse(hand[i].name.Split()[1]);
+                                }
+                                else
+                                {
+                                    if (cnt == 0)
+                                    {
+                                        r += 1;
+                                        maxPower += 1;
+                                        cnt += 1;
+                                    }
+                                    else
+                                        break;
+                                }
+                            }
+                            if (r - l - 1 >= len && maxPower > curRankPower)
+                                return true;
+                            r = return_r;
+                            cnt = 0;
+                            for (int i = l; i > 1; i--)
+                            {
+                                if (checkStraight[i])
+                                    l -= 1;
+                                else
+                                {
+                                    if (cnt == 0)
+                                    {
+                                        l -= 1;
+                                        cnt += 1;
+                                    }
+                                    else
+                                        break;
+                                }
+                            }
+                            if (r - l - 1 >= len && maxPower > curRankPower)
+                                return true;
+                        }
+                        return false;
+                    }
+            }
+        }
+    }
+
     public void Bet(int[] betCards, Rank rank)
     {
         List<Card> tmp = new List<Card>();
@@ -644,4 +776,6 @@ public class GameManager : MonoBehaviourPunCallbacks
             }
         }
     }
+
+
 }
