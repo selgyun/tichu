@@ -18,7 +18,7 @@ public class ConformButton : MonoBehaviour
     public GameManager gmr;
     public GameObject BirdWishPanel;
     public Text BirdWishText;
-
+    public Text InfoText;
     
     public static bool receiveCard = false;
 
@@ -34,7 +34,7 @@ public class ConformButton : MonoBehaviour
         PV.RPC("Wish", RpcTarget.All, i);
         BirdWishPanel.SetActive(false);
         int[] bird = { 52 };
-        gmr.Bet(bird, GameManager.Rank.Bird);
+        gmr.Bet(bird, GameManager.Rank.Bird, 1);
     }
 
     [PunRPC]
@@ -119,6 +119,7 @@ public class ConformButton : MonoBehaviour
                     int[] tempCards = new int[14];
                     int selectNum = 0;
                     int power = 0;
+                    bool isBird = false;
                     for (int i = 0; i < GameManager.hand.Length; i++)
                     {
                         if (GameManager.hand[i].isSelected)
@@ -127,6 +128,8 @@ public class ConformButton : MonoBehaviour
                             selectNum++;
                             power = Int32.Parse(GameManager.hand[i].name.Split()[1]);
                             Debug.Log("selected id: " + GameManager.hand[i].id);
+                            if (GameManager.hand[i].id == 52)
+                                isBird = true;
                         }
                     }
                     if (selectNum == 0)
@@ -136,7 +139,22 @@ public class ConformButton : MonoBehaviour
                     {
                         selectCards[i] = tempCards[i];
                     }
+                    // rank 와 power 계산
                     GameManager.Rank rank = gmr.judgeRank(selectCards);
+                    if (rank == GameManager.Rank.Dragon)
+                        power = 15;
+                    else if (rank == GameManager.Rank.Phoenix)
+                    {
+                        if (GameManager.curRankPower == 0)
+                            power = 1;
+                        else
+                            power = GameManager.curRankPower;
+                    }
+                    else if (rank == GameManager.Rank.FullHouse)
+                    {
+                        if (power != selectCards[2] % 13 + 2 && !(selectCards[0] == 54 && power != selectCards[3]))
+                            power = selectCards[2] % 13 + 2;
+                    }
 
                     if (rank == GameManager.Rank.FourOfaKind && rank == GameManager.Rank.StraightFlush)
                     {
@@ -144,11 +162,11 @@ public class ConformButton : MonoBehaviour
                         if (GameManager.curRank == GameManager.Rank.FourOfaKind || GameManager.curRank == GameManager.Rank.StraightFlush)
                         {
                             if (gmr.GetCurHandRankingLength() < selectNum)
-                                gmr.Bet(selectCards, rank);
+                                gmr.Bet(selectCards, rank, power);
                             else if (gmr.GetCurHandRankingLength() == selectNum)
                             {
                                 if (GameManager.curRankPower < power)
-                                    gmr.Bet(selectCards, rank);
+                                    gmr.Bet(selectCards, rank, power);
                                 else
                                     return;
                             }
@@ -159,14 +177,14 @@ public class ConformButton : MonoBehaviour
                         }
                         else
                         {
-                            gmr.Bet(selectCards, rank);
+                            gmr.Bet(selectCards, rank, power);
                         }
                     }
                     // 선택된 패가 없거나, 족보가 다르고 현재 나와있는 패가 있을 때. 제외
                     else if (rank == GameManager.Rank.Empty || (GameManager.curRank != rank && GameManager.curRank != GameManager.Rank.Empty))
                     {
                         // 내 패가 싱글이고 현재 패가 참새거나 봉황일때는 제외
-                        if (!(rank == GameManager.Rank.Single && (GameManager.curRank == GameManager.Rank.Bird || GameManager.curRank == GameManager.Rank.Phoenix)))
+                        if (!(rank == GameManager.Rank.Single || rank == GameManager.Rank.Dragon) && ((GameManager.curRank == GameManager.Rank.Bird || GameManager.curRank == GameManager.Rank.Phoenix)))
                             return;
                     }
                     // 내 패와 현재 나와있는 패의 길이가 다를 때
@@ -174,11 +192,11 @@ public class ConformButton : MonoBehaviour
                     {
                         return;
                     }
-                    // 족보는 같으나 수치가 밀릴 때, 드래곤 아닐때
-                    if (power < GameManager.curRankPower && rank != GameManager.Rank.Dragon)
+                    // 족보는 같으나 수치가 밀릴 때, 봉황 아닐때
+                    if (power <= GameManager.curRankPower && rank != GameManager.Rank.Phoenix)
                         return;
                     // 내 패가 참새임
-                    if (rank == GameManager.Rank.Bird)
+                    if (isBird)
                     {
                         BirdWishPanel.SetActive(true);
                     }
@@ -199,14 +217,14 @@ public class ConformButton : MonoBehaviour
                             if (isCanBet)
                             {
                                 PV.RPC("MakeWish", RpcTarget.All);
-                                gmr.Bet(selectCards, rank);
+                                gmr.Bet(selectCards, rank, power);
                             }
                             else
                                 return;
                         }
                         else
                         {
-                            gmr.Bet(selectCards, rank);
+                            gmr.Bet(selectCards, rank, power);
                         }
                     }
                 }
