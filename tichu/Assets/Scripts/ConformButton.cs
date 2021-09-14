@@ -33,8 +33,6 @@ public class ConformButton : MonoBehaviour
     {
         PV.RPC("Wish", RpcTarget.All, i);
         BirdWishPanel.SetActive(false);
-        int[] bird = { 52 };
-        gmr.Bet(bird, GameManager.Rank.Bird, 1);
     }
 
     [PunRPC]
@@ -180,25 +178,36 @@ public class ConformButton : MonoBehaviour
                             gmr.Bet(selectCards, rank, power);
                         }
                     }
+                    if (rank == GameManager.Rank.Phoenix && (GameManager.curRank == GameManager.Rank.Single || GameManager.curRank == GameManager.Rank.Bird))
+                    {
+                        // 내 패가 봉황이고, 현재 패 싱글 또는 새 PASS
+                    }
+                    else if (rank == GameManager.Rank.Single && (GameManager.curRank == GameManager.Rank.Phoenix || GameManager.curRank == GameManager.Rank.Bird))
+                    {
+                        // 내 패가 싱글이고, 현재 패 봉황 또는 새 PASS
+                    }
+                    else if (rank == GameManager.Rank.Dragon && ((GameManager.curRank == GameManager.Rank.Phoenix || GameManager.curRank == GameManager.Rank.Bird) || GameManager.curRank == GameManager.Rank.Single))
+                    {
+                        // 내 패가 용이고, 현재 패 싱글 또는 새 또는 봉황
+                    }
                     // 선택된 패가 없거나, 족보가 다르고 현재 나와있는 패가 있을 때. 제외
                     else if (rank == GameManager.Rank.Empty || (GameManager.curRank != rank && GameManager.curRank != GameManager.Rank.Empty))
                     {
-                        // 내 패가 싱글이고 현재 패가 참새거나 봉황일때는 제외
-                        if (!(rank == GameManager.Rank.Single || rank == GameManager.Rank.Dragon) && ((GameManager.curRank == GameManager.Rank.Bird || GameManager.curRank == GameManager.Rank.Phoenix)))
-                            return;
+                        return;
                     }
-                    // 내 패와 현재 나와있는 패의 길이가 다를 때
+                    // 내 패와 현재 나와있는 패의 족보는 같으나 길이가 다를 때
                     if (rank == GameManager.curRank && selectNum != gmr.GetCurHandRankingLength())
                     {
                         return;
                     }
-                    // 족보는 같으나 수치가 밀릴 때, 봉황 아닐때
+                    // 족보, 길이가 같지만 수치가 밀릴 때, 봉황 아닐때
                     if (power <= GameManager.curRankPower && rank != GameManager.Rank.Phoenix)
                         return;
                     // 내 패가 참새임
                     if (isBird)
                     {
                         BirdWishPanel.SetActive(true);
+                        gmr.Bet(selectCards, rank, power);
                     }
                     // 족보도 같고 수치도 안밀림
                     else
