@@ -108,7 +108,7 @@ public class ConformButton : MonoBehaviour
                     //참새의 소원 처리
                     if (GameManager.BIRDWISH != 0)
                     {
-                        if (gmr.checkBirdWish(GameManager.BIRDWISH, gmr.GetCurHandRankingLength()))
+                        if (gmr.checkBirdWish(gmr.GetCurHandRankingLength()))
                         {
                             isMakeWish = true;
                         }
@@ -133,7 +133,7 @@ public class ConformButton : MonoBehaviour
                     if (selectNum == 0)
                         return;
                     int[] selectCards = new int[selectNum];
-                    for(int i = 0;i < selectNum; i++)
+                    for (int i = 0; i < selectNum; i++)
                     {
                         selectCards[i] = tempCards[i];
                     }
@@ -154,7 +154,7 @@ public class ConformButton : MonoBehaviour
                             power = selectCards[2] % 13 + 2;
                     }
 
-                    if (rank == GameManager.Rank.FourOfaKind && rank == GameManager.Rank.StraightFlush)
+                    if (rank == GameManager.Rank.FourOfaKind || rank == GameManager.Rank.StraightFlush)
                     {
                         //폭탄일 때 처리
                         if (GameManager.curRank == GameManager.Rank.FourOfaKind || GameManager.curRank == GameManager.Rank.StraightFlush)
@@ -193,16 +193,21 @@ public class ConformButton : MonoBehaviour
                     // 선택된 패가 없거나, 족보가 다르고 현재 나와있는 패가 있을 때. 제외
                     else if (rank == GameManager.Rank.Empty || (GameManager.curRank != rank && GameManager.curRank != GameManager.Rank.Empty))
                     {
+                        InfoText.text = "The hand is empty or different!";
                         return;
                     }
                     // 내 패와 현재 나와있는 패의 족보는 같으나 길이가 다를 때
                     if (rank == GameManager.curRank && selectNum != gmr.GetCurHandRankingLength())
                     {
+                        InfoText.text = "The length of rank is different!";
                         return;
                     }
                     // 족보, 길이가 같지만 수치가 밀릴 때, 봉황 아닐때
                     if (power <= GameManager.curRankPower && rank != GameManager.Rank.Phoenix)
+                    {
+                        InfoText.text = "weak power!";
                         return;
+                    }
                     // 내 패가 참새임
                     if (isBird)
                     {
@@ -229,7 +234,10 @@ public class ConformButton : MonoBehaviour
                                 gmr.Bet(selectCards, rank, power);
                             }
                             else
+                            {
+                                InfoText.text = "Make Wish!";
                                 return;
+                            }
                         }
                         else
                         {

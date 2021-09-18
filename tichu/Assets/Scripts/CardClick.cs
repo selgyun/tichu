@@ -26,7 +26,6 @@ public class CardClick : MonoBehaviour, IPointerClickHandler
 
     public void CardClickEvent()
     {
-        Debug.Log(id);
         if (!interactable[id])
             return;
         if (!GameManager.gameStart[GameManager.pos])
