@@ -25,6 +25,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public GameObject InGameBtnBar;
     public GameObject GTBar;
     public GameObject GameOverPanel;
+    public GameObject GameEndPanel;
 
     [Header("Button")]
     public Button[] PlayerBtn;
@@ -111,6 +112,8 @@ public class GameManager : MonoBehaviourPunCallbacks
         curRankPower = -1;
         BirdWishText.text = "Wish: ";
         InfoText.text = "Welcome to Tichu";
+        TeamBlueText.text = "Team blue: 0";
+        TeamRedText.text = "Team red: 0";
         BirdWishText.gameObject.SetActive(false);
         SmallTichuBtn.gameObject.SetActive(true);
         HandRankingText.text = "Empty";
@@ -120,6 +123,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         InGameBtnBar.SetActive(false);
         GiveCardPanel.SetActive(false);
         GameOverPanel.SetActive(false);
+        GameEndPanel.SetActive(false);
         ConformBtn.interactable = true;
         for (int i = 0; i < 4; i++)
         {
@@ -575,6 +579,37 @@ public class GameManager : MonoBehaviourPunCallbacks
         TeamRedText.text = "Team red: " + (Int32.Parse(TeamRedText.text.Split()[2]) + total_red).ToString();
     }
 
+    [PunRPC]
+    public void GameEnd()
+    {
+        GameEndPanel.SetActive(true);
+        if (Int32.Parse(TeamBlueText.text.Split()[2]) > Int32.Parse(TeamRedText.text.Split()[2]))
+        {
+            GameEndPanel.transform.GetChild(1).GetComponent<Text>().text = "Team Blue";
+            GameEndPanel.transform.GetChild(4).GetComponent<Text>().text = PhotonNetwork.PlayerList[0].NickName;
+            GameEndPanel.transform.GetChild(5).GetComponent<Text>().text = PhotonNetwork.PlayerList[2].NickName;
+        }else if (Int32.Parse(TeamBlueText.text.Split()[2]) < Int32.Parse(TeamRedText.text.Split()[2]))
+        {
+            GameEndPanel.transform.GetChild(1).GetComponent<Text>().text = "Team Red";
+            GameEndPanel.transform.GetChild(4).GetComponent<Text>().text = PhotonNetwork.PlayerList[1].NickName;
+            GameEndPanel.transform.GetChild(5).GetComponent<Text>().text = PhotonNetwork.PlayerList[3].NickName;
+        }
+        else
+        {
+            GameEndPanel.transform.GetChild(1).GetComponent<Text>().text = "None";
+            GameEndPanel.transform.GetChild(2).GetComponent<Text>().text = PhotonNetwork.PlayerList[0].NickName;
+            GameEndPanel.transform.GetChild(3).GetComponent<Text>().text = PhotonNetwork.PlayerList[1].NickName;
+            GameEndPanel.transform.GetChild(4).GetComponent<Text>().text = PhotonNetwork.PlayerList[2].NickName;
+            GameEndPanel.transform.GetChild(5).GetComponent<Text>().text = PhotonNetwork.PlayerList[3].NickName;
+        }
+        GameEndPanel.transform.GetChild(10).GetComponent<Text>().text = TeamBlueText.text.Split()[2];
+        GameEndPanel.transform.GetChild(11).GetComponent<Text>().text = TeamRedText.text.Split()[2];
+    }
+    public void GameEndButton()
+    {
+        PhotonNetwork.LoadLevel("Room");
+    }
+
     public void GameOverButton()
     {
         GameOverPanel.SetActive(false);
@@ -586,7 +621,15 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         nextGameReady[p] = true;
         if ((nextGameReady[0] && nextGameReady[1]) && (nextGameReady[0] && nextGameReady[1]))
-            PV.RPC("newGame", RpcTarget.All);
+        {
+            if (Int32.Parse(TeamRedText.text.Split()[2]) >= 1000 || Int32.Parse(TeamBlueText.text.Split()[2]) >= 1000)
+            {
+                PV.RPC("GameEnd", RpcTarget.All);
+            }
+            else
+                PV.RPC("newGame", RpcTarget.All);
+        }
+            
     }
 
     [PunRPC]
