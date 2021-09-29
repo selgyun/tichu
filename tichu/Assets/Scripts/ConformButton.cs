@@ -69,6 +69,36 @@ public class ConformButton : MonoBehaviour
         BirdWishText.gameObject.SetActive(false);
         GameManager.BIRDWISH = 0;
     }
+
+    public void WishCheck(bool isMakeWish, int[] selectCards, int selectNum, GameManager.Rank rank, int power)
+    {
+        if (isMakeWish)
+        {
+            bool isCanBet = false;
+            for (int i = 0; i < selectNum; i++)
+            {
+                if (selectCards[i] % 13 == GameManager.BIRDWISH - 2)
+                {
+                    isCanBet = true;
+                }
+            }
+            if (isCanBet)
+            {
+                PV.RPC("MakeWish", RpcTarget.All);
+                gmr.Bet(selectCards, rank, power);
+            }
+            else
+            {
+                InfoText.text = "You have to grant the sparrow's wish!";
+                return;
+            }
+        }
+        else
+        {
+            gmr.Bet(selectCards, rank, power);
+        }
+    }
+
     public void Conform()
     {
         if (!GameManager.isChangeCard[GameManager.pos])
@@ -153,30 +183,45 @@ public class ConformButton : MonoBehaviour
                         if (power != selectCards[2] % 13 + 2 && !(selectCards[0] == 54 && power != selectCards[3]))
                             power = selectCards[2] % 13 + 2;
                     }
-
                     if (rank == GameManager.Rank.FourOfaKind || rank == GameManager.Rank.StraightFlush)
                     {
                         //폭탄일 때 처리
                         if (GameManager.curRank == GameManager.Rank.FourOfaKind || GameManager.curRank == GameManager.Rank.StraightFlush)
                         {
                             if (gmr.GetCurHandRankingLength() < selectNum)
-                                gmr.Bet(selectCards, rank, power);
+                            {
+                                GameManager.pressBomb = false;
+                                WishCheck(isMakeWish, selectCards, selectNum, rank, power);
+                            }
                             else if (gmr.GetCurHandRankingLength() == selectNum)
                             {
                                 if (GameManager.curRankPower < power)
-                                    gmr.Bet(selectCards, rank, power);
+                                {
+                                    GameManager.pressBomb = false;
+                                    WishCheck(isMakeWish, selectCards, selectNum, rank, power);
+                                }
                                 else
+                                {
+                                    InfoText.text = "The bomb's power is weaker than the current one.";
                                     return;
+                                }
                             }
                             else
                             {
+                                InfoText.text = "The bomb's power is weaker than the current one.";
                                 return;
                             }
                         }
                         else
                         {
-                            gmr.Bet(selectCards, rank, power);
+                            GameManager.pressBomb = false;
+                            WishCheck(isMakeWish, selectCards, selectNum, rank, power);
                         }
+                    }
+                    if (GameManager.pressBomb)
+                    {
+                        InfoText.text = "You Have to play Bomb this turn";
+                        return;
                     }
                     if (rank == GameManager.Rank.Phoenix && (GameManager.curRank == GameManager.Rank.Single || GameManager.curRank == GameManager.Rank.Bird))
                     {
@@ -217,32 +262,7 @@ public class ConformButton : MonoBehaviour
                     // 족보도 같고 수치도 안밀림
                     else
                     {
-                        // 내가 참새의 소원을 들어줘야 할 때
-                        if (isMakeWish)
-                        {
-                            bool isCanBet = false;
-                            for (int i = 0; i < selectNum; i++)
-                            {
-                                if (selectCards[i] % 13 == GameManager.BIRDWISH - 2)
-                                {
-                                    isCanBet = true;
-                                }
-                            }
-                            if (isCanBet)
-                            {
-                                PV.RPC("MakeWish", RpcTarget.All);
-                                gmr.Bet(selectCards, rank, power);
-                            }
-                            else
-                            {
-                                InfoText.text = "Make Wish!";
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            gmr.Bet(selectCards, rank, power);
-                        }
+                        WishCheck(isMakeWish, selectCards, selectNum, rank, power);
                     }
                 }
             }

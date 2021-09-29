@@ -61,6 +61,7 @@ public class GameManager : MonoBehaviourPunCallbacks
     public static Rank curRank = Rank.Empty;
     public static int curRankPower = -1;
     public static int BIRDWISH = 0;
+    public static bool pressBomb = false;
     public enum Rank { Empty, Single, Pair, ContinuousPair, Triple, Straight, FullHouse, FourOfaKind, StraightFlush, Bird, Dragon, Phoenix, Dog }
 
     Color blueTeamColor = new Color(203/255f, 225/255f, 255/255f);
@@ -125,6 +126,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         GameOverPanel.SetActive(false);
         GameEndPanel.SetActive(false);
         ConformBtn.interactable = true;
+        pressBomb = false;
         for (int i = 0; i < 4; i++)
         {
             actions[i] = 0;
@@ -139,6 +141,7 @@ public class GameManager : MonoBehaviourPunCallbacks
             PlayerBtn[i].transform.GetChild(3).gameObject.SetActive(false);
             PlayerBtn[i].transform.GetChild(4).gameObject.SetActive(false);
             PlayerBtn[i].transform.GetChild(5).gameObject.SetActive(true);
+            PlayerBtn[i].transform.GetChild(7).gameObject.SetActive(false);
             PlayerBtn[i].interactable = false;
             if (i % 2 == 0)
                 PlayerBtn[i].GetComponent<Image>().color = blueTeamColor;
@@ -392,6 +395,7 @@ public class GameManager : MonoBehaviourPunCallbacks
             GameObject.FindGameObjectWithTag("CardSwapImage").transform.GetChild(i).GetComponent<Image>().sprite = GiveCardImage.giveCard[i].sprite;
         }
         ConformBtn.interactable = true;
+        SetBombButton();
     }
 
     public void PassButton()
@@ -490,6 +494,10 @@ public class GameManager : MonoBehaviourPunCallbacks
             actions[(curTurn + 1) % 4] = 0;
             actions[(curTurn + 2) % 4] = 0;
             actions[(curTurn + 3) % 4] = 0;
+            PlayerBtn[curTurn].transform.GetChild(7).gameObject.SetActive(true);
+            PlayerBtn[(curTurn + 1) % 4].transform.GetChild(7).gameObject.SetActive(false);
+            PlayerBtn[(curTurn + 2) % 4].transform.GetChild(7).gameObject.SetActive(false);
+            PlayerBtn[(curTurn + 3) % 4].transform.GetChild(7).gameObject.SetActive(false);
         }
         do
             curTurn = (curTurn + 1) % 4;
@@ -645,7 +653,116 @@ public class GameManager : MonoBehaviourPunCallbacks
         CurScoreText.text = "Score: 0";
         PV.RPC("Turn", RpcTarget.All);
     }
-    
+
+    [PunRPC]
+    public void SetBombButton()
+    {
+        BombBtn.interactable = false;
+        bool isFourOfKind = false;
+        bool isStraightFlush = false;
+        int bombPower = 0;
+        int bomblen = 0;
+        bool[] checkFourCard = {false, false, false, false, false, false, false, false, false, false, false, false, false};
+        // power와 장수 6, 7, 8, 9, 10, J, Q, K, A
+        bool[] checkId = new bool[52];
+        int[,] checkStraightFlush = { { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, {0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+        for (int i = 0; i < hand.Length; i++)
+        {
+            if (i < hand.Length - 3)
+            {
+                // 포카드 있음..!
+                if ((hand[i].id < 52 && hand[i + 1].id < 52) && (hand[i + 2].id < 52 && hand[i + 3].id < 52))
+                {
+                    if (((hand[i].id % 13 == hand[i + 1].id % 13) && (hand[i + 1].id % 13 == hand[i + 2].id % 13))
+                        && (hand[i + 2].id % 13 == hand[i + 3].id % 13))
+                    {
+                        checkFourCard[hand[i].id % 13] = true;
+                        isFourOfKind = true;
+                        bombPower = hand[i].id % 13 + 2;
+                        bomblen = 4;
+                    }
+                }
+            }
+            if (hand[i].id < 52)
+                checkId[hand[i].id] = true;
+        }
+        // 스트레이트 파워
+        for (int i = 0;i < 9; i++)
+        {
+            // 블랙 블루 그린 레드
+            for (int j = 0; j < 4; j++)
+            {
+                //내려가면서 체크
+                for (int k = i+4; k >= 0; k--)
+                {
+                    if (checkId[j * 13 + k])
+                        checkStraightFlush[j, i] += 1;
+                    else
+                        break;
+                }
+                if (checkStraightFlush[j, i] >= 5)
+                {
+                    isStraightFlush = true;
+                    if (bomblen < checkStraightFlush[j, i])
+                    {
+                        bomblen = checkStraightFlush[j, i];
+                        bombPower = i + 6;
+                    }
+                    else if (bomblen == checkStraightFlush[j, i])
+                    {
+                        bombPower = i + 6;
+                    }
+                }
+            }
+        }
+        if (curRank == Rank.FourOfaKind)
+        {
+            if (isStraightFlush || (isFourOfKind && curRankPower < bombPower))
+            {
+                BombBtn.interactable = true;
+                return;
+            }
+        }else if (curRank == Rank.StraightFlush)
+        {
+            if (isStraightFlush)
+            {
+                if (bomblen > GetCurHandRankingLength() || (bomblen == GetCurHandRankingLength() && curRankPower < bombPower))
+                {
+                    BombBtn.interactable = true;
+                    return;
+                }
+            }
+        }
+        else
+        {
+            if (isStraightFlush || isFourOfKind)
+            {
+                BombBtn.interactable = true;
+                return;
+            }
+        }
+    }
+
+    public void BombButton()
+    {
+        while(curTurn != pos)
+        {
+            PV.RPC("NextTurn", RpcTarget.All, 0);
+        }
+        Invoke("BoardCastBomb", 1.5f); 
+        PassBtn.interactable = false;
+        pressBomb = true;
+    }
+    public void BoardCastBomb()
+    {
+        PV.RPC("SetInfoText", RpcTarget.All, PhotonNetwork.PlayerList[pos].NickName + " is about to set off a bomb");
+    }
+    [PunRPC]
+    void SetInfoText(String infotext)
+    {
+        InfoText.text = infotext;
+    }
+
     [PunRPC]
     void SetWaitingImage(int p, bool flag)
     {
@@ -1131,6 +1248,7 @@ public class GameManager : MonoBehaviourPunCallbacks
             PV.RPC("SetGameFinished", RpcTarget.All, pos);
         }
         PV.RPC("ShowBet", RpcTarget.All, betCards, rank, pos, hand.Length, power);
+        PV.RPC("SetBombButton", RpcTarget.All);
         ViewHand();
         if (rank != Rank.Dog)
             PV.RPC("NextTurn", RpcTarget.All, 1);
